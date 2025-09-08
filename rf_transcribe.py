@@ -109,7 +109,7 @@ def time_intern(secs):
     return datetime.time(datetime.fromtimestamp(secs)).strftime("%H:%M:%S")
 
 def main():
-    input_file = "rf_trunkerad_mono.wav"
+    input_file = "output.wav"
     duration = librosa.get_duration(filename=input_file)
     script_start_time = time.time()
     transcribe_and_diarize(input_file)

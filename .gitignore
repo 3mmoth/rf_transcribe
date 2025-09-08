@@ -1,0 +1,9 @@
+tidsstämplar.csv
+transcript.json
+transcript.txt
+output.wav
+launch.json
+fortroendevalda.csv
+cache/
+.vscode/
+__pycache__/
