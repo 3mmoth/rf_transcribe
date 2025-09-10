@@ -1,5 +1,6 @@
 from datetime import datetime
 import glob, os, subprocess
+import sys
 from unittest import result
 import librosa
 import whisperx
@@ -108,8 +109,7 @@ def segment_embedding(segment, duration, embedding_model, input_file):
 def time_intern(secs):
     return datetime.time(datetime.fromtimestamp(secs)).strftime("%H:%M:%S")
 
-def main():
-    input_file = "output.wav"
+def transcribe(input_file, transcription_name):
     duration = librosa.get_duration(filename=input_file)
     script_start_time = time.time()
     transcribe_and_diarize(input_file)
@@ -118,4 +118,10 @@ def main():
     print(f"\n⏱️ Exekveringstid: {execution_time:.2f} sekunder för {duration:.2f} sekunder ljudfil.")
 
 if __name__ == "__main__":
-    main()
+    if len(sys.argv) < 3:
+        print("Användning: python rf_transcribe.py <input.wav> <output.json>")
+        sys.exit(1)
+
+    input_file = sys.argv[1]
+    transcription_name = sys.argv[2]
+    transcribe(input_file, transcription_name)

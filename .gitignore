@@ -7,3 +7,6 @@ fortroendevalda.csv
 cache/
 .vscode/
 __pycache__/
+*.wav
+*.json
+*.txt
