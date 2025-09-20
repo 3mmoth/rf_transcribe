@@ -3,6 +3,21 @@ import sys
 import pandas as pd
 import re
 
+# --- Slå ihop block från samma talare ---
+def merge_consecutive_speaker_blocks(transcript):
+    merged = []
+    for block in transcript:
+        if (
+            merged
+            and merged[-1].get("talare") == block.get("talare")
+            and merged[-1].get("talare") is not None
+        ):
+            # Slå ihop text och uppdatera sluttid
+            merged[-1]["text"] += " " + block["text"]
+            merged[-1]["end"] = block["end"]
+        else:
+            merged.append(block.copy())
+    return merged
 # --- Förbered talarnamn, parti och inläggstyp ---
 def parse_title(title):
     """
@@ -79,15 +94,7 @@ def main(input_file, output_file):
     with open(input_file, "r", encoding="utf-8") as f:
         transcript = json.load(f)
 
-    timestamps = pd.read_csv("tidsstamplar.csv")
-    timestamps[["name", "party", "inlagg"]] = timestamps["title"].apply(lambda x: pd.Series(parse_title(x)))
-    timestamps = timestamps.sort_values("start_time_seconds").reset_index(drop=True)
-    for block in transcript:
-        name, party, inlagg = find_speaker(block["start"], timestamps)
-        block["talare"] = name
-        block["parti"] = party
-        block["inlagg"] = inlagg
-
+    transcript = merge_consecutive_speaker_blocks(transcript)
     # --- Slå ihop block från samma talare, men bryt vid vissa nyckelord ---
     BREAK_PATTERNS = [
         r"varsågod[.!?:,;…»”\"']*$",      # matchar "varsågod" med ev. skiljetecken på slutet
@@ -124,15 +131,15 @@ def main(input_file, output_file):
     # --- Sätt talare/parti för exakt "Varsågod" i slutresultatet ---
     for block in final_blocks:
         if re.fullmatch(r"\s*varsågod[.!?:,;…»”\"']*\s*", block["text"], re.IGNORECASE):
-            block["talare"] = "Anna Sotkasiira Wik"
-            block["parti"] = "Moderaterna"
+            block["talare"] = "Ordförande"
+            block["parti"] = "-"
             block["inlagg"] = "Fördela ordet"
 
     # Applicera ordförandematchning på alla block i final_blocks
     for block in final_blocks:
         if is_chairman_phrase(block["text"]):
-            block["talare"] = "Anna Sotkasiira Wik"
-            block["parti"] = "Moderaterna"
+            block["talare"] = "Ordförande"
+            block["parti"] = "-"
             block["inlagg"] = "Fördela ordet"
 
     # --- Spara till ny fil ---

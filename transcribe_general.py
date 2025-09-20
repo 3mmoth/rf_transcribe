@@ -43,7 +43,6 @@ def transcribe_and_diarize(input_file):
 
     audio = whisperx.load_audio(audio_file)
     result = model.transcribe(audio, batch_size=batch_size)
-    print(result["segments"])  # before alignment
 
     # delete model if low on GPU resources
     # import gc; gc.collect(); torch.cuda.empty_cache(); del model
@@ -89,7 +88,7 @@ def transcribe_and_diarize(input_file):
             "end": round(segment["end"], 2), 
             "text": segment["text"].strip(),
             "talare": segment["speaker"],
-            "parti": None  # Du kan lägga till logik för att identifiera parti senare
+            "parti": None  
         })
 
     # Skriv till JSON-fil
