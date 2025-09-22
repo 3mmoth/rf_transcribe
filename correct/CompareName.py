@@ -2,52 +2,56 @@ import pandas as pd
 from rapidfuzz import fuzz
 import phonetics
 
-def normalize_name(name: str) -> str:
-    return name.strip().lower()
+class CompareName:
 
-def phonetic_code(name: str) -> str:
-    return phonetics.metaphone(name)
+    def normalize_name(self, name: str) -> str:
+        return name.strip().lower()
 
-def compare_names(transcribed: str, target: str) -> int:
-    """Jämför två namn (kan vara för- och efternamn)."""
-    trans_parts = normalize_name(transcribed).split()
-    target_parts = normalize_name(target).split()
+    def phonetic_code(self, name: str) -> str:
+        return phonetics.metaphone(name)
 
-    scores = []
-    for t_part in trans_parts:
-        best_part_score = 0
-        for g_part in target_parts:
-            fuzzy_score = fuzz.WRatio(t_part, g_part)
-            phon_score = 20 if phonetic_code(t_part) == phonetic_code(g_part) else 0
-            total = fuzzy_score + phon_score
-            if total > best_part_score:
-                best_part_score = total
-        scores.append(best_part_score)
+    def compare_names(self, transcribed: str, target: str) -> int:
+        """Jämför två namn (kan vara för- och efternamn)."""
+        trans_parts = self.normalize_name(transcribed).split()
+        target_parts = self.normalize_name(target).split()
 
-    return int(sum(scores) / len(scores)) if scores else 0
+        scores = []
+        for t_part in trans_parts:
+            best_part_score = 0
+            for g_part in target_parts:
+                fuzzy_score = fuzz.WRatio(t_part, g_part)
+                phon_score = 20 if self.phonetic_code(t_part) == self.phonetic_code(g_part) else 0
+                total = fuzzy_score + phon_score
+                if total > best_part_score:
+                    best_part_score = total
+            scores.append(best_part_score)
 
-def match_name(transcribed: str, namn_csv: str, threshold: int = 80):
-    """Matcha ett transkriberat namn mot namnlistan i CSV."""
-    df_namn = pd.read_csv(namn_csv, delimiter=";")
-    namn_lista = df_namn["namn"].dropna().tolist()
+        return int(sum(scores) / len(scores)) if scores else 0
 
-    bästa_match = None
-    bästa_score = 0
-    for namn in namn_lista:
-        score = compare_names(transcribed, namn)
-        if score > bästa_score:
-            bästa_score = score
-            bästa_match = namn
+    def match_name(self, transcribed: str, namn_csv: str, threshold: int):
+        """Matcha ett transkriberat namn mot namnlistan i CSV."""
+        df_namn = pd.read_csv(namn_csv, delimiter=";")
+        namn_lista = df_namn["namn"].dropna().tolist()
 
-    if bästa_score >= threshold:
-        return bästa_match, bästa_score
-    return None, bästa_score
+        bästa_match = None
+        bästa_score = 0
+        print(f"Jämför: '{transcribed}'")
+        for namn in namn_lista:
+            
+            score = self.compare_names(transcribed, namn)
+            if score > bästa_score:
+                bästa_score = score
+                bästa_match = namn
+                print(f"  Ny bästa match: '{bästa_match}' med poäng {bästa_score}")
+        if bästa_score >= threshold:
+            return bästa_match, bästa_score
+        return None, bästa_score
 
 
-# === Exempelanvändning ===
-if __name__ == "__main__":
-    input_namn = "Elvira Wiberg"   # Detta kan komma från ett annat script
-    match, score = match_name(input_namn, "fortroendevalda.csv", threshold=80)
+    # === Exempelanvändning ===
+    if __name__ == "__main__":
+        input_namn = "Elvira Wiberg"   # Detta kan komma från ett annat script
+        match, score = match_name(input_namn, "fortroendevalda.csv", threshold=80)
 
-    print(f"Input: {input_namn}")
-    print(f"Bästa match: {match} (poäng: {score})")
+        print(f"Input: {input_namn}")
+        print(f"Bästa match: {match} (poäng: {score})")
