@@ -21,6 +21,21 @@ def is_chairman_phrase(text):
             return True
     return False
 
+def is_mixed_row(text):
+    """
+    Returnerar True om texten innehåller både ordförandefras och talarfras.
+    Exempel: "Då går ordet till Andreas Wästö för genmäle."
+    """
+    pattern = r"Varsågod[.!?:,;…»”\"']+\s*Tack"
+    if re.search(pattern, text, re.IGNORECASE):
+        return True
+    return False
+
+def is_genmale(previous_type_of_speech):
+    if previous_type_of_speech == "replik":
+        return True
+    return False
+
 def find_names_in_text(text):
     """
     Returnerar en lista med namn (två eller fler ord i följd som börjar med versal).
@@ -40,6 +55,7 @@ def set_chairman_phrase(data, obj):
                 o["speaker"] = ordforande_namn
                 o["party"] = namn_till_parti.get(ordforande_namn)
                 o["role"] = namn_till_uppdrag.get(ordforande_namn)
+                o["type_of_speech"] = "fördela ordet"
 
 
 def get_type_of_speech(obj):
@@ -57,7 +73,17 @@ def get_type_of_speech(obj):
         speechtype = "anförande"
     return speechtype
 
-# 1. Läs in alla namn och partier från fortroendevalda.csv
+# def split_mixed_rows(data):
+#     new_data = []
+#     for obj in data:
+#         if is_chairman_phrase(obj["text"]):
+#             split_blocks = split_chairman_phrase(obj)
+#             new_data.extend(split_blocks)
+#         else:
+#             new_data.append(obj)
+#     return new_data
+
+# 1b. Läs in alla namn och partier från fortroendevalda.csv
 namn_till_parti = {}
 namn_till_uppdrag = {}
 name_comparator = CompareName()
@@ -78,27 +104,49 @@ with open("fortroendevalda.csv", encoding="utf-8") as f:
 with open("transcribe/trans30small5.json", encoding="utf-8") as f:
     data = json.load(f)
 
+new_data = []
+for i, obj in enumerate(data):
+    if is_mixed_row(obj["text"]):
+        print(f"Delar upp rad {i} med text: '{obj['text']}'")
+        # Dela på första "Varsågod" + skiljetecken + ev. mellanslag
+        parts = re.split(r"(Varsågod[.!?:,;…»”\"']+\s*)", obj["text"], maxsplit=1)
+        if len(parts) == 3:
+            # parts[0] = text före "Varsågod", parts[1] = "Varsågod." osv, parts[2] = text efter
+            first_obj = obj.copy()
+            first_obj["text"] = parts[0].strip() + parts[1].strip()
+            second_obj = obj.copy()
+            second_obj["text"] = parts[2].strip()
+            second_obj["speaker"] = "UNDEFINED"
+            new_data.append(first_obj)
+            new_data.append(second_obj)
+        else:
+            new_data.append(obj)
+    else:
+        new_data.append(obj)
+
+data = new_data
+
 # 3. Gå igenom objekten och populera speaker och party
 for i, obj in enumerate(data):
-    # Sätt speaker till ordförandens namn om det är en ordförandefras
+    data[i]["index"] = i
     if is_chairman_phrase(obj["text"]) and ordforande_namn:
         set_chairman_phrase(data, obj)
-    # Sätt speaker och party på nästföljande objekt om namn hittas i text
     forekommande_namn = find_names_in_text(obj["text"])
     if len(forekommande_namn) > 0:
         for fn in forekommande_namn:
             print(f"  Hittade namn i text: '{fn}'")
             match, score = name_comparator.match_name(fn, "fortroendevalda.csv", 80)
-            if match != None:
-                for n in namn_till_parti:
-                    target_idx = i + 1
-                    if target_idx < len(data):
-                        data[target_idx]["speaker"] = match
-                        data[target_idx]["party"] = namn_till_parti.get(match)
-                        data[target_idx]["role"] = namn_till_uppdrag.get(match)
-                        if data[target_idx - 1].get("role") == "ordförande":
-                            data[target_idx]["type_of_speech"] = get_type_of_speech(data[target_idx - 1])
-                    break
+            if match is not None:
+                target_idx = i + 1
+                if target_idx < len(data):
+                    data[target_idx]["speaker"] = match
+                    data[target_idx]["party"] = namn_till_parti.get(match)
+                    data[target_idx]["role"] = namn_till_uppdrag.get(match)
+                    if data[target_idx - 1].get("role") == "ordförande":
+                        data[target_idx]["type_of_speech"] = get_type_of_speech(data[target_idx - 1])
+                break  # Bryt loopen över forekommande_namn när första match är funnen
+    elif (is_genmale(data[i-1].get("type_of_speech"))) and (data[i-1].get("speaker") != "Ordförande"):
+        data[target_idx]["type_of_speech"] = "genmäle"
 
 # 4. Spara resultatet
 with open("trans30small5_speaker_corrected_updated.json", "w", encoding="utf-8") as f:
