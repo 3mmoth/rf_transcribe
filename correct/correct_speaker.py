@@ -1,7 +1,7 @@
 import json
 import csv
 import re
-from CompareName import CompareName
+from .CompareName import CompareName
 
 PRESIDIET = "presidiet"
 REPLIK = "replik"
@@ -167,7 +167,7 @@ def correct_speakers_in_transcript(input_file, output_name, fullmaktige, date):
     name_comparator = CompareName()
     ordforande_namn = None
     ordforande_number = None
-    with open("resources/fortroendevalda/_" + fullmaktige + ".csv", encoding="utf-8") as f:
+    with open("resources/" + fullmaktige +"/fortroendevalda/fortroendevalda_" + fullmaktige + ".csv", encoding="utf-8") as f:
         reader = csv.DictReader(f, delimiter=";")
         for row in reader:
             namn = row["namn"].strip()
@@ -227,7 +227,7 @@ def correct_speakers_in_transcript(input_file, output_name, fullmaktige, date):
         if len(forekommande_namn) > 0:
             for fn in forekommande_namn:
                 print(f"  Hittade namn i text: '{fn}'")
-                match, score = name_comparator.match_name(fn, "resources/fortroendevalda/_" + fullmaktige + ".csv", 80)
+                match, score = name_comparator.match_name(fn, "resources/" + fullmaktige+"/fortroendevalda/fortroendevalda_" + fullmaktige + ".csv", 80)
                 if match is not None and not is_valarende(obj["text"]):
                     target_idx = i + 1
                     if target_idx < len(data) and data[i].get("role") == PRESIDIET:
