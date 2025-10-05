@@ -180,7 +180,7 @@ def correct_speakers_in_transcript(input_file, output_name, fullmaktige, date):
 
     # 2. Läs in JSON-filen
 
-    with open("transcribe/" + input_file, encoding="utf-8") as f:
+    with open(input_file, encoding="utf-8") as f:
         data = json.load(f)
 
     for obj in data:
@@ -256,7 +256,7 @@ def correct_speakers_in_transcript(input_file, output_name, fullmaktige, date):
             data[i]["type_of_speech"] = INFORMATION
 
     # 4. Spara resultatet
-    with open("finished/"+ fullmaktige + "/" + output_name + date + ".json", "w", encoding="utf-8") as f:
+    with open(output_name, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
 
     print("Klart! Speaker- och party-populering utförd.")

@@ -1,13 +1,16 @@
 import sys
 import json
 import time
+import warnings
 from transcribe.PyannoteDiarizer import PyannoteDiarizer
 from transcribe.WhisperAudioTranscriber import WhisperAudioTranscriber
 from transcribe.SpeakerAligner import SpeakerAligner
 
-def transcribe(audio_path, output_json, hf_token):
-    start_time = time.time()
+warnings.filterwarnings("ignore")
 
+def transcribe(audio_path, output_json):
+    start_time = time.time()
+    hf_token = "HF_TOKEN_REMOVED"
     # 1. Initiera diarizer och transcriber
     diarizer = PyannoteDiarizer(hf_token)
     transcriber = WhisperAudioTranscriber()
@@ -18,7 +21,7 @@ def transcribe(audio_path, output_json, hf_token):
     if diarization is None:
         print("Diarization failed.")
         return
-    print("Diarisering klar ✅")
+    print("Diarisering klar ✅. Klockan är nu", time.strftime("%H:%M:%S"))
     # 3. Transkribera ljudet
     transcription, timestamps = transcriber.transcribe(audio_path)
     if transcription is None or timestamps is None:
@@ -51,5 +54,4 @@ if __name__ == "__main__":
         sys.exit(1)
     audio_path = sys.argv[1]
     output_json = sys.argv[2]
-    hf_token = sys.argv[3]
-    transcribe(audio_path, output_json, hf_token)
+    transcribe(audio_path, output_json)

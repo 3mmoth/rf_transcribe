@@ -1,4 +1,4 @@
-
+import os
 import re
 from ovrigt.timestamps import extract_chapters
 from get_download_url import get_download_url
@@ -25,17 +25,44 @@ def get_fullmaktige(text):
 
 def run_scripts(url, fullmaktige, date):
     try:
-        # url = "https://regionostergotland.screen9.tv/media/t4fJlbzqCkayMBqqc30Xzw/Regionfullm%C3%A4ktige%20%C3%96sterg%C3%B6tland%202025-04-24"
-        # chapters = extract_chapters(url)
         download_url = get_download_url(url)
         audio_output_path = "extracted_audio/" + fullmaktige + "_" + date + ".wav"
-        transcribe_output_path = "transcribe/" + fullmaktige + "_" + date + ".json"
+        transcribe_output_path = "transcribe/transcription/" + fullmaktige + "_" + date + ".json"
+        finished_output_path = "finished/" + fullmaktige + "/" + fullmaktige + "_" + date + ".json"
         print("✅ Hittade download-URL:", download_url)
-        extract_wav_from_mp4(download_url, audio_output_path)
-        print("✅ Ljud extraherat till", audio_output_path)
-        transcribe(audio_output_path, transcribe_output_path)
-        print("✅ Transkription klar! Resultat sparat i", transcribe_output_path)
-        correct_speakers_in_transcript(transcribe_output_path, "corrected_" + transcribe_output_path, fullmaktige, date)
+        if not os.path.exists(audio_output_path):
+            try:
+                extract_wav_from_mp4(download_url, audio_output_path)
+                print("✅ Ljud extraherat till", audio_output_path)
+            except Exception as e:
+                # Ta bort ev. korrupt ljudfil
+                if os.path.exists(audio_output_path):
+                    os.remove(audio_output_path)
+                print("❌ Fel vid extrahering av ljud:", e)
+                raise  # Skicka vidare felet till yttre except
+        else:
+            print("Ljudfilen finns redan:", audio_output_path)
+        if not os.path.exists(transcribe_output_path):
+            try:
+                transcribe(audio_output_path, transcribe_output_path)
+                print("✅ Transkription klar! Resultat sparat i", transcribe_output_path)
+            except Exception as e:
+                if os.path.exists(transcribe_output_path):
+                    os.remove(transcribe_output_path)
+                print("❌ Fel vid transkribering:", e)
+                raise
+        else:
+            print("Transkriptionsfilen finns redan:", transcribe_output_path)
+        if not os.path.exists(finished_output_path):
+            try:
+                correct_speakers_in_transcript(transcribe_output_path, finished_output_path, fullmaktige, date)
+            except Exception as e:
+                if os.path.exists(finished_output_path):
+                    os.remove(finished_output_path)
+                print("❌ Fel vid korrigering:", e)
+                raise
+        else:
+            print("Korrigerad transkriptionsfil finns redan:", finished_output_path)
     except Exception as e:
         print("❌ Ett fel inträffade:", e)
     # correct_speakers_in_transcript("output.json", "output_corrected.json", "rf", "2025-04-24")
