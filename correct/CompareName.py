@@ -35,14 +35,14 @@ class CompareName:
 
         bästa_match = None
         bästa_score = 0
-        print(f"Jämför: '{transcribed}'")
+        # print(f"Jämför: '{transcribed}'")
         for namn in namn_lista:
             
             score = self.compare_names(transcribed, namn)
             if score > bästa_score:
                 bästa_score = score
                 bästa_match = namn
-                print(f"  Ny bästa match: '{bästa_match}' med poäng {bästa_score}")
+                # print(f"  Ny bästa match: '{bästa_match}' med poäng {bästa_score}")
         if bästa_score >= threshold:
             return bästa_match, bästa_score
         return None, bästa_score

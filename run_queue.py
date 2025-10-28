@@ -13,7 +13,7 @@ def main(index, fullmaktige, run_queue):
     elif run_queue == "true":
         for i, row in enumerate(rows[int(index):], start=int(index)):
             print(f"🔄 Kör index {i}: {row['lank'].strip()}")
-            run_scripts(row["lank"].strip(), fullmaktige, row["datum"].strip())
+            run_scripts(row["lank"].strip(), fullmaktige, row["datum"].strip(), row["typ"].strip())
             print(f"✅ Klart med index {i}\n")
 
 if __name__ == "__main__":

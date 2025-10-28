@@ -2,7 +2,7 @@ import os
 import re
 from ovrigt.timestamps import extract_chapters
 from get_download_url import get_download_url
-from ovrigt.extract_sound import extract_wav_from_mp4
+from extract_sound import extract_wav_qc, extract_wav_yt
 from transcribe.transcribe import transcribe
 from correct.correct_speaker import correct_speakers_in_transcript
 
@@ -23,16 +23,25 @@ def get_fullmaktige(text):
         return "kf"
     return None
 
-def run_scripts(url, fullmaktige, date):
+def run_scripts(url, fullmaktige, date, video_source):
     try:
-        download_url = get_download_url(url)
+        download_url = None
         audio_output_path = "extracted_audio/" + fullmaktige + "_" + date + ".wav"
         transcribe_output_path = "transcribe/transcription/" + fullmaktige + "_" + date + ".json"
         finished_output_path = "finished/" + fullmaktige + "/" + fullmaktige + "_" + date + ".json"
+        if (video_source == "youtube" and not os.path.exists(audio_output_path)):
+            download_url = url
+        elif (video_source == "Quickchannel" and not os.path.exists(audio_output_path)):
+            download_url = get_download_url(url)
+        else:
+            print("Videokällan är redan nedladdad.")
         print("✅ Hittade download-URL:", download_url)
         if not os.path.exists(audio_output_path):
             try:
-                extract_wav_from_mp4(download_url, audio_output_path)
+                if video_source == "youtube":
+                    extract_wav_yt(download_url, audio_output_path)
+                elif video_source == "Quickchannel":
+                    extract_wav_qc(download_url, audio_output_path)
                 print("✅ Ljud extraherat till", audio_output_path)
             except Exception as e:
                 # Ta bort ev. korrupt ljudfil

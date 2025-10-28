@@ -225,8 +225,8 @@ def correct_speakers_in_transcript(input_file, output_name, fullmaktige, date):
     for i, obj in enumerate(data):        
         forekommande_namn = find_names_in_text(obj["text"])
         if len(forekommande_namn) > 0:
-            for fn in forekommande_namn:
-                print(f"  Hittade namn i text: '{fn}'")
+            for fn in reversed(forekommande_namn):
+                # print(f"  Hittade namn i text: '{fn}'")
                 match, score = name_comparator.match_name(fn, "resources/" + fullmaktige+"/fortroendevalda/fortroendevalda_" + fullmaktige + ".csv", 80)
                 if match is not None and not is_valarende(obj["text"]):
                     target_idx = i + 1

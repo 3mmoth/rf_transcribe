@@ -2,7 +2,7 @@ import torch
 from transformers import AutoModelForSpeechSeq2Seq, AutoProcessor, pipeline
 
 class WhisperAudioTranscriber():
-    def __init__(self, model_name="KBLab/kb-whisper-small"):
+    def __init__(self, model_name="KBLab/kb-whisper-large"):
         # Configure the device for computation
         if torch.cuda.is_available():
             self.device = "cuda:0"
