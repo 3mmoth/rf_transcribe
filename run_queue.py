@@ -9,6 +9,7 @@ def main(index, fullmaktige, run_queue):
         rows = list(reader)  # Gör reader till en lista så vi kan indexera
 
     if run_queue == "false":
+        print("🔄 Kör endast index ", rows[int(index)]["index"].strip())
         run_scripts(rows[int(index)]["lank"].strip(), fullmaktige, rows[int(index)]["datum"].strip())
     elif run_queue == "true":
         for i, row in enumerate(rows[int(index):], start=int(index)):

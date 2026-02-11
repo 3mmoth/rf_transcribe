@@ -67,8 +67,22 @@ def seconds_to_hhmmss(value):
     return f"{hrs:02d}:{mins:02d}:{secs:02d}"
 
 def process_file(json_path, rows):
-    with open(json_path, "r", encoding="utf-8") as f:
-        data = json.load(f)
+    try:
+        with open(json_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+    except json.JSONDecodeError as e:
+        # Läs filinnehåll och visa en bit runt felposition för debug
+        with open(json_path, "r", encoding="utf-8", errors="replace") as f:
+            content = f.read()
+        pos = e.pos if hasattr(e, "pos") else None
+        start = max(0, (pos or 0) - 200)
+        end = (pos or 0) + 200
+        print(f"❌ JSONDecodeError i fil: {json_path}")
+        print(f"  Fel: {e.msg} vid rad {e.lineno} kolumn {e.colno} (pos {pos})")
+        print("---- Kontext ----")
+        print(content[start:end])
+        print("---- Slut kontext ----")
+        return  # hoppar över filen eller ändra till raise för att stoppa
     date = extract_date_from_filename(os.path.basename(json_path))
     links = gather_links_for_date(rows, date)
     metadata = {"date": date, "links": links}
@@ -86,7 +100,7 @@ def process_file(json_path, rows):
     out_obj = {"metadata": metadata, "transcript": converted}
     base = os.path.basename(json_path)
     name, ext = os.path.splitext(base)
-    out_name = f"{name}_with_meta.json"
+    out_name = f"{name}.json"
     out_path = os.path.join(OUTPUT_DIR, out_name)
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(out_obj, f, ensure_ascii=False, indent=2)
