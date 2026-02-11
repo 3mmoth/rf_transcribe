@@ -2,15 +2,20 @@ import sys
 import json
 import time
 import warnings
+import os
+from dotenv import load_dotenv
 from transcribe.PyannoteDiarizer import PyannoteDiarizer
 from transcribe.WhisperAudioTranscriber import WhisperAudioTranscriber
 from transcribe.SpeakerAligner import SpeakerAligner
 
 warnings.filterwarnings("ignore")
+load_dotenv()
 
 def transcribe(audio_path, output_json):
     start_time = time.time()
-    hf_token = "HF_TOKEN_REMOVED"
+    hf_token = os.getenv("HF_TOKEN")
+    if not hf_token:
+        raise ValueError("HF_TOKEN saknas i miljövariablerna. Skapa en .env fil med HF_TOKEN=din_token")
     # 1. Initiera diarizer och transcriber
     diarizer = PyannoteDiarizer(hf_token)
     transcriber = WhisperAudioTranscriber()
