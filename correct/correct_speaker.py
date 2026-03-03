@@ -1,6 +1,7 @@
 import json
 import csv
 import re
+import argparse
 from .CompareName import CompareName
 
 PRESIDIET = "presidiet"
@@ -13,6 +14,7 @@ FORDELA_REPLIK = "fördela replik"
 FORDELA_GENMALE = "fördela genmäle"
 FORDELA_ANFORANDE = "fördela anförande"
 FORDELA_VALARENDE = "fördela valärende"
+NAME_PATTERN = r'\b([A-ZÅÄÖ][a-zåäöéèêëüûùúïîìíôöòóa-z\-]+(?:-[A-ZÅÄÖ][a-zåäöéèêëüûùúïîìíôöòóa-z\-]+)?(?:\s+[A-ZÅÄÖ][a-zåäöéèêëüûùúïîìíôöòóa-z\-]+)+)\b'
 
 def is_presidie_phrase(text):
     """
@@ -82,8 +84,22 @@ def find_names_in_text(text):
     Exempel: "Jag ger ordet till Anna Andersson och Per Larsson." -> ["Anna Andersson", "Per Larsson"]
     """
     # Matcha två eller fler ord som börjar med versal, ev. bindestreck, åäö
-    pattern = r'\b([A-ZÅÄÖ][a-zåäöéèêëüûùúïîìíôöòóa-z\-]+(?:-[A-ZÅÄÖ][a-zåäöéèêëüûùúïîìíôöòóa-z\-]+)?(?:\s+[A-ZÅÄÖ][a-zåäöéèêëüûùúïîìíôöòóa-z\-]+)+)\b'    
-    return re.findall(pattern, text)
+    return re.findall(NAME_PATTERN, text)
+
+def get_name_before_transition_phrase(text):
+    transition_match = re.search(r"\b(följt av|därefter|sedan)\b", text, re.IGNORECASE)
+    if not transition_match:
+        return False, None
+
+    transition_start = transition_match.start()
+    names_before_transition = [
+        match.group(1)
+        for match in re.finditer(NAME_PATTERN, text)
+        if match.end() <= transition_start
+    ]
+    if not names_before_transition:
+        return True, None
+    return True, names_before_transition[-1]
 
 def set_presidie(data, obj):
     old_speaker = obj.get("speaker")
@@ -225,7 +241,13 @@ def correct_speakers_in_transcript(input_file, output_name, fullmaktige, date):
     for i, obj in enumerate(data):        
         forekommande_namn = find_names_in_text(obj["text"])
         if len(forekommande_namn) > 0:
-            for fn in reversed(forekommande_namn):
+            has_transition_phrase, name_before_transition = get_name_before_transition_phrase(obj["text"])
+            if data[i].get("role") == PRESIDIET and has_transition_phrase:
+                names_to_match = [name_before_transition] if name_before_transition else []
+            else:
+                names_to_match = list(reversed(forekommande_namn))
+
+            for fn in names_to_match:
                 # print(f"  Hittade namn i text: '{fn}'")
                 match, score = name_comparator.match_name(fn, "resources/" + fullmaktige+"/fortroendevalda/fortroendevalda_" + fullmaktige + ".csv", 80)
                 if match is not None and not is_valarende(obj["text"]):
@@ -260,3 +282,23 @@ def correct_speakers_in_transcript(input_file, output_name, fullmaktige, date):
         json.dump(data, f, ensure_ascii=False, indent=2)
 
     print("Klart! Speaker- och party-populering utförd.")
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Korrigerar talare i ett transkript.")
+    parser.add_argument("--input", required=True, help="Sökväg till input-JSON")
+    parser.add_argument("--output", required=True, help="Sökväg till output-JSON")
+    parser.add_argument("--fullmaktige", required=True, choices=["rf", "kf"], help="Typ av fullmäktige")
+    parser.add_argument("--date", required=True, help="Mötesdatum, t.ex. 2025-04-27")
+    args = parser.parse_args()
+
+    correct_speakers_in_transcript(
+        input_file=args.input,
+        output_name=args.output,
+        fullmaktige=args.fullmaktige,
+        date=args.date,
+    )
+
+
+if __name__ == "__main__":
+    main()
